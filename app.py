@@ -2,6 +2,40 @@
 import streamlit as st
 import pandas as pd
 
+# Custom CSS styling
+st.markdown("""
+    <style>
+        body {
+            background-color: #f9f9f9;
+        }
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        h1 {
+            color: #1c1c1e;
+        }
+        .stButton button {
+            background-color: #4F46E5;
+            color: white;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+        }
+        .stNumberInput > div {
+            padding: 0.25rem 0.75rem;
+        }
+        .stSlider {
+            padding: 0.5rem 0 1rem 0;
+        }
+        table {
+            font-size: 16px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("CSI Profitability Simulator")
+
 def get_csi_percentages(csi_score):
     if csi_score >= 901:
         return 0.74, 0.35
@@ -56,7 +90,6 @@ def simulate_profitability(csi_score, initial_customers, service_profit_per_year
         "Total Profit": df["Total Profit"].sum()
     }
     df = pd.concat([pd.DataFrame([totals]), df], ignore_index=True)
-
     return df
 
 def format_and_style(df):
@@ -66,7 +99,7 @@ def format_and_style(df):
             lambda x: f"{int(float(x)):,}" if str(x).replace(',', '').replace('.', '').isdigit() else x
         )
     styled = df_styled.style.set_table_styles([
-        {"selector": "th", "props": [("text-align", "center")]},
+        {"selector": "th", "props": [("text-align", "center"), ("font-weight", "bold")]},
         {"selector": "td", "props": [("text-align", "right")]}
     ])
     styled = styled.apply(
@@ -75,16 +108,20 @@ def format_and_style(df):
     )
     return styled
 
-st.title("CSI Profitability Simulator")
+with st.form("input_form"):
+    csi_score = st.slider("CSI Score (out of 1,000)", 0, 1000, 870)
+    col1, col2 = st.columns(2)
+    with col1:
+        initial_customers = st.number_input("Sample Size (Volvo Selekt Sales)", min_value=1, value=100)
+        ownership_duration = st.number_input("Ownership Duration (Years)", min_value=1, value=2)
+        vehicle_profit = st.number_input("Vehicle Sale Profit", min_value=0, value=1225)
+    with col2:
+        service_profit = st.number_input("Service Profit per Year per Customer", min_value=0, value=350)
+        warranty_duration = st.number_input("Volvo Selekt Warranty (Years)", min_value=1, value=3)
 
-csi_score = st.slider("CSI Score (out of 1,000)", 0, 1000, 870)
-initial_customers = st.number_input("Sample Size (Volvo Selekt Sales)", min_value=1, value=100)
-service_profit = st.number_input("Service Profit per Year per Customer", min_value=0, value=350)
-ownership_duration = st.number_input("Ownership Duration (Years)", min_value=1, value=2)
-warranty_duration = st.number_input("Volvo Selekt Warranty (Years)", min_value=1, value=3)
-vehicle_profit = st.number_input("Vehicle Sale Profit", min_value=0, value=1225)
+    submitted = st.form_submit_button("Run Simulation")
 
-if st.button("Run Simulation"):
+if submitted:
     results = simulate_profitability(
         csi_score,
         initial_customers,
