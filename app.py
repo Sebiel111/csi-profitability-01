@@ -57,15 +57,27 @@ def simulate_profitability(csi_score, initial_customers, service_profit_per_year
     }
     df = pd.concat([pd.DataFrame([totals]), df], ignore_index=True)
 
-    df["Service Customers"] = df["Service Customers"].apply(lambda x: f"{int(x):,}" if isinstance(x, (int, float)) else x)
-    df["Repeat Purchases"] = df["Repeat Purchases"].apply(lambda x: f"{int(x):,}" if isinstance(x, (int, float)) else x)
-    df["Total Profit"] = df["Total Profit"].apply(lambda x: f"{int(x):,}" if isinstance(x, (int, float)) else x)
-
     return df
+
+def format_and_style(df):
+    df_styled = df.copy()
+    for col in ["Service Customers", "Repeat Purchases", "Total Profit"]:
+        df_styled[col] = df_styled[col].apply(
+            lambda x: f"{int(float(x)):,}" if str(x).replace(',', '').replace('.', '').isdigit() else x
+        )
+    styled = df_styled.style.set_table_styles([
+        {"selector": "th", "props": [("text-align", "center")]},
+        {"selector": "td", "props": [("text-align", "right")]}
+    ])
+    styled = styled.apply(
+        lambda x: ['font-weight: bold; background-color: #f5f5dc' if x.name == 0 else '' for _ in x],
+        axis=1
+    )
+    return styled
 
 st.title("CSI Profitability Simulator")
 
-csi_score = st.slider("CSI Score (0 to 1000)", 0, 1000, 870)
+csi_score = st.slider("CSI Score (out of 1,000)", 0, 1000, 870)
 initial_customers = st.number_input("Sample Size (Volvo Selekt Sales)", min_value=1, value=100)
 service_profit = st.number_input("Service Profit per Year per Customer", min_value=0, value=350)
 ownership_duration = st.number_input("Ownership Duration (Years)", min_value=1, value=2)
@@ -82,6 +94,6 @@ if st.button("Run Simulation"):
         vehicle_profit
     )
     st.subheader("Results")
-    st.dataframe(results)
+    st.write(format_and_style(results), unsafe_allow_html=True)
     csv = results.to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", csv, "csi_profitability_results.csv", "text/csv")
